@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentiment Analysis Tool</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top-bar">
+    <div class="logo">formula bot</div>
+    <nav class="nav-right">
+      <a href="#" class="nav-link">Use Cases</a>
+      <a href="#" class="nav-link">Pricing</a>
+      <button class="btn-outline">Log in</button>
+      <button class="btn-solid">Try for free</button>
+    </nav>
+  </header>
+
+  <main class="container">
+
+    <section class="hero">
+      <h1>Sentiment Analysis Tool - Free!</h1>
+      <p class="hero-sub">
+        Input your text to generate the sentiment – positive, negative or neutral – with our Sentiment Analysis Tool.
+      </p>
+      <p class="hero-sub small">
+        Creating an account allows you to upload Excel files to generate sentiment.
+      </p>
+    </section>
+
+    <section class="tool-card">
+        <label for="inputText" class="tool-label">
+          Enter the text you want to analyze for sentiment. Press ENTER (SHIFT+ENTER) after each sentence.
+        </label>
+        <p class="tool-hint">
+          You can either paste sentences directly or upload a dataset file (CSV / Excel).
+        </p>
+      
+        <div class="mode-toggle">
+          <button type="button" id="modeTextBtn" class="mode-btn active">Text mode</button>
+          <button type="button" id="modeFileBtn" class="mode-btn">Dataset mode</button>
+        </div>
+      
+        <div id="textModeBlock">
+          <p class="tool-hint">
+            Example:<br />
+            I absolutely love this product!<br />
+            It’s amazing!<br />
+            I’m really disappointed with the quality of this item.
+          </p>
+      
+          <textarea
+            id="inputText"
+            rows="6"
+            placeholder="Type or paste your sentences here, one per line..."
+          ></textarea>
+        </div>
+      
+        <div id="fileModeBlock" class="hidden">
+          <label for="datasetFile" class="tool-label small">
+            Upload dataset file (CSV or Excel). The backend will read the text column you specify.
+          </label>
+          <input type="file" id="datasetFile" accept=".csv, .xls, .xlsx" />
+          <input
+            type="text"
+            id="textColumnName"
+            class="text-column-input"
+            placeholder='Column name that contains text, e.g. "Text"'
+          />
+          <p class="tool-hint small">
+            After upload, the server will run sentiment analysis on each row and return a file with predictions.
+          </p>
+        </div>
+      
+        <button id="analyzeBtn" class="btn-primary">
+          Analyze Sentiment
+        </button>
+      
+        <div id="status" class="status"></div>
+      
+        <div id="results" class="results hidden"></div>
+      </section>      
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
