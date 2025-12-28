@@ -1,6 +1,4 @@
-// 🚀 YOUR LIVE API URL
 const API_URL = "https://arungurajapu-sentiment-analysis.hf.space";
-
 const textModeBtn = document.getElementById("modeTextBtn");
 const fileModeBtn = document.getElementById("modeFileBtn");
 
@@ -121,3 +119,4 @@ function showResults(items) {
     `)
     .join("");
 }
+
