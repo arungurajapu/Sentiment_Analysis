@@ -1,107 +1,132 @@
-const inputEl = document.getElementById("inputText");
-const analyzeBtn = document.getElementById("analyzeBtn");
-const statusEl = document.getElementById("status");
-const resultsEl = document.getElementById("results");
+// 🚀 YOUR LIVE API URL
+const API_URL = "https://arungurajapu-sentiment-analysis.hf.space/";
 
-const modeTextBtn = document.getElementById("modeTextBtn");
-const modeFileBtn = document.getElementById("modeFileBtn");
-const textModeBlock = document.getElementById("textModeBlock");
-const fileModeBlock = document.getElementById("fileModeBlock");
-const datasetFileInput = document.getElementById("datasetFile");
-const textColumnInput = document.getElementById("textColumnName");
+class SentimentAnalyzer {
+    // Text mode (textarea)
+    static async predictText(textareaId, resultsId) {
+        const textarea = document.getElementById(textareaId);
+        const resultsDiv = document.getElementById(resultsId);
+        
+        const texts = textarea.value
+            .split('\n')
+            .map(t => t.trim())
+            .filter(t => t.length > 0);
+            
+        if (texts.length === 0) {
+            resultsDiv.innerHTML = "<p style='color: orange;'>Please enter some text!</p>";
+            return;
+        }
+        
+        resultsDiv.innerHTML = "<p>🔄 Analyzing...</p>";
+        
+        try {
+            const response = await fetch(`${API_URL}/predict_text`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ texts })
+            });
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            this.displayResults(data.results, resultsId);
+            
+        } catch (error) {
+            resultsDiv.innerHTML = `<p style='color: red;'>❌ Error: ${error.message}</p>`;
+        }
+    }
+    
+    // File mode (CSV/Excel upload)
+    static async predictFile(fileInputId, textColumnId, resultsId) {
+        const fileInput = document.getElementById(fileInputId);
+        const textColumnInput = document.getElementById(textColumnId);
+        const resultsDiv = document.getElementById(resultsId);
+        
+        const file = fileInput.files[0];
+        const textColumn = textColumnInput.value.trim();
+        
+        if (!file) {
+            resultsDiv.innerHTML = "<p style='color: orange;'>Please select a file!</p>";
+            return;
+        }
+        
+        if (!textColumn) {
+            resultsDiv.innerHTML = "<p style='color: orange;'>Please enter text column name!</p>";
+            return;
+        }
+        
+        resultsDiv.innerHTML = "<p>🔄 Processing file...</p>";
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('text_column', textColumn);
+        
+        try {
+            const response = await fetch(`${API_URL}/predict_file`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const data = await response.json();
+            this.displayResults(data.predictions, resultsId, data.row_count);
+            
+        } catch (error) {
+            resultsDiv.innerHTML = `<p style='color: red;'>❌ Error: ${error.message}</p>`;
+        }
+    }
+    
+    // Display results
+    static displayResults(results, resultsId, rowCount = null) {
+        const resultsDiv = document.getElementById(resultsId);
+        
+        if (rowCount) {
+            resultsDiv.innerHTML += `<p><strong>📊 Processed ${rowCount} rows</strong></p>`;
+        }
+        
+        resultsDiv.innerHTML += `
+            <div style="margin-top: 20px;">
+                ${results.map((r, i) => `
+                    <div style="
+                        background: ${r.label === 'LABEL_1' ? '#d4edda' : '#f8d7da'};
+                        border-left: 4px solid ${r.label === 'LABEL_1' ? '#28a745' : '#dc3545'};
+                        padding: 12px; margin: 8px 0; border-radius: 4px;
+                    ">
+                        <strong>${r.label === 'LABEL_1' ? '✅ POSITIVE' : '❌ NEGATIVE'}</strong> 
+                        (${(r.score * 100).toFixed(1)}% confidence)
+                        <br><small>"${r.text.substring(0, 100)}${r.text.length > 100 ? '...' : ''}"</small>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+}
 
-let currentMode = "text"; 
-
-modeTextBtn.addEventListener("click", () => {
-  currentMode = "text";
-  modeTextBtn.classList.add("active");
-  modeFileBtn.classList.remove("active");
-  textModeBlock.classList.remove("hidden");
-  fileModeBlock.classList.add("hidden");
-  statusEl.textContent = "";
-  resultsEl.classList.add("hidden");
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Text mode button
+    const textBtn = document.getElementById('predict-text-btn');
+    if (textBtn) {
+        textBtn.addEventListener('click', () => {
+            SentimentAnalyzer.predictText('text-input', 'text-results');
+        });
+    }
+    
+    // File mode button
+    const fileBtn = document.getElementById('predict-file-btn');
+    if (fileBtn) {
+        fileBtn.addEventListener('click', () => {
+            SentimentAnalyzer.predictFile('file-input', 'text-column-input', 'file-results');
+        });
+    }
+    
+    // Clear results
+    const clearBtn = document.getElementById('clear-results');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            document.getElementById('text-results').innerHTML = '';
+            document.getElementById('file-results').innerHTML = '';
+        });
+    }
 });
-
-modeFileBtn.addEventListener("click", () => {
-  currentMode = "file";
-  modeFileBtn.classList.add("active");
-  modeTextBtn.classList.remove("active");
-  fileModeBlock.classList.remove("hidden");
-  textModeBlock.classList.add("hidden");
-  statusEl.textContent = "";
-  resultsEl.classList.add("hidden");
-});
-
-function fakePredict(text) {
-  const lowered = text.toLowerCase();
-  if (lowered.includes("love") || lowered.includes("great")) {
-    return { label: "positive", score: 0.95 };
-  } else if (lowered.includes("disappointed") || lowered.includes("bad")) {
-    return { label: "negative", score: 0.92 };
-  }
-  return { label: "neutral", score: 0.55 };
-}
-
-async function handleAnalyzeText() {
-  const raw = inputEl.value.trim();
-  if (!raw) {
-    statusEl.textContent = "Please enter at least one sentence.";
-    resultsEl.classList.add("hidden");
-    return;
-  }
-
-  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
-  statusEl.textContent = `Analyzing ${lines.length} line(s)... (demo mode)`;
-  resultsEl.innerHTML = "";
-  resultsEl.classList.remove("hidden");
-
-  for (const line of lines) {
-    const { label, score } = fakePredict(line);
-
-    const row = document.createElement("div");
-    row.className = "result-item";
-
-    const textSpan = document.createElement("span");
-    textSpan.className = "result-text";
-    textSpan.textContent = line;
-
-    const labelSpan = document.createElement("span");
-    labelSpan.className = "result-label";
-    labelSpan.textContent = `${label} (${(score * 100).toFixed(1)}%)`;
-
-    row.appendChild(textSpan);
-    row.appendChild(labelSpan);
-    resultsEl.appendChild(row);
-  }
-
-  statusEl.textContent = "Done (demo prediction only).";
-}
-
-async function handleAnalyzeFile() {
-  const file = datasetFileInput.files[0];
-  const columnName = textColumnInput.value.trim();
-
-  if (!file) {
-    statusEl.textContent = "Please choose a CSV/Excel file.";
-    return;
-  }
-  if (!columnName) {
-    statusEl.textContent = "Please enter the text column name (e.g., Text).";
-    return;
-  }
-
-  statusEl.textContent =
-    `Dataset mode selected. File "${file.name}" with text column "${columnName}". ` +
-    "Backend integration will process and return a result file.";
-  resultsEl.classList.add("hidden");
-}
-
-async function handleAnalyze() {
-  if (currentMode === "text") {
-    await handleAnalyzeText();
-  } else {
-    await handleAnalyzeFile();
-  }
-}
-
-analyzeBtn.addEventListener("click", handleAnalyze);
