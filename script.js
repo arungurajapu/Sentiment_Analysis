@@ -1,132 +1,123 @@
 // 🚀 YOUR LIVE API URL
-const API_URL = "https://arungurajapu-sentiment-analysis.hf.space/";
+const API_URL = "https://arungurajapu-sentiment-analysis.hf.space";
 
-class SentimentAnalyzer {
-    // Text mode (textarea)
-    static async predictText(textareaId, resultsId) {
-        const textarea = document.getElementById(textareaId);
-        const resultsDiv = document.getElementById(resultsId);
-        
-        const texts = textarea.value
-            .split('\n')
-            .map(t => t.trim())
-            .filter(t => t.length > 0);
-            
-        if (texts.length === 0) {
-            resultsDiv.innerHTML = "<p style='color: orange;'>Please enter some text!</p>";
-            return;
-        }
-        
-        resultsDiv.innerHTML = "<p>🔄 Analyzing...</p>";
-        
-        try {
-            const response = await fetch(`${API_URL}/predict_text`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ texts })
-            });
-            
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
-            const data = await response.json();
-            this.displayResults(data.results, resultsId);
-            
-        } catch (error) {
-            resultsDiv.innerHTML = `<p style='color: red;'>❌ Error: ${error.message}</p>`;
-        }
-    }
-    
-    // File mode (CSV/Excel upload)
-    static async predictFile(fileInputId, textColumnId, resultsId) {
-        const fileInput = document.getElementById(fileInputId);
-        const textColumnInput = document.getElementById(textColumnId);
-        const resultsDiv = document.getElementById(resultsId);
-        
-        const file = fileInput.files[0];
-        const textColumn = textColumnInput.value.trim();
-        
-        if (!file) {
-            resultsDiv.innerHTML = "<p style='color: orange;'>Please select a file!</p>";
-            return;
-        }
-        
-        if (!textColumn) {
-            resultsDiv.innerHTML = "<p style='color: orange;'>Please enter text column name!</p>";
-            return;
-        }
-        
-        resultsDiv.innerHTML = "<p>🔄 Processing file...</p>";
-        
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('text_column', textColumn);
-        
-        try {
-            const response = await fetch(`${API_URL}/predict_file`, {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
-            const data = await response.json();
-            this.displayResults(data.predictions, resultsId, data.row_count);
-            
-        } catch (error) {
-            resultsDiv.innerHTML = `<p style='color: red;'>❌ Error: ${error.message}</p>`;
-        }
-    }
-    
-    // Display results
-    static displayResults(results, resultsId, rowCount = null) {
-        const resultsDiv = document.getElementById(resultsId);
-        
-        if (rowCount) {
-            resultsDiv.innerHTML += `<p><strong>📊 Processed ${rowCount} rows</strong></p>`;
-        }
-        
-        resultsDiv.innerHTML += `
-            <div style="margin-top: 20px;">
-                ${results.map((r, i) => `
-                    <div style="
-                        background: ${r.label === 'LABEL_1' ? '#d4edda' : '#f8d7da'};
-                        border-left: 4px solid ${r.label === 'LABEL_1' ? '#28a745' : '#dc3545'};
-                        padding: 12px; margin: 8px 0; border-radius: 4px;
-                    ">
-                        <strong>${r.label === 'LABEL_1' ? '✅ POSITIVE' : '❌ NEGATIVE'}</strong> 
-                        (${(r.score * 100).toFixed(1)}% confidence)
-                        <br><small>"${r.text.substring(0, 100)}${r.text.length > 100 ? '...' : ''}"</small>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    }
+const textModeBtn = document.getElementById("modeTextBtn");
+const fileModeBtn = document.getElementById("modeFileBtn");
+
+const textBlock = document.getElementById("textModeBlock");
+const fileBlock = document.getElementById("fileModeBlock");
+
+const analyzeBtn = document.getElementById("analyzeBtn");
+const statusBox = document.getElementById("status");
+const resultsBox = document.getElementById("results");
+
+// -------- Mode Switching ----------
+textModeBtn.addEventListener("click", () => {
+  textModeBtn.classList.add("active");
+  fileModeBtn.classList.remove("active");
+  textBlock.classList.remove("hidden");
+  fileBlock.classList.add("hidden");
+});
+
+fileModeBtn.addEventListener("click", () => {
+  fileModeBtn.classList.add("active");
+  textModeBtn.classList.remove("active");
+  fileBlock.classList.remove("hidden");
+  textBlock.classList.add("hidden");
+});
+
+// -------- Analyze Button ----------
+analyzeBtn.addEventListener("click", async () => {
+  resultsBox.classList.remove("hidden");
+  resultsBox.innerHTML = "";
+  statusBox.innerHTML = "⏳ Processing...";
+
+  // If TEXT MODE
+  if (textModeBtn.classList.contains("active")) {
+    await predictText();
+  } 
+  // If FILE MODE
+  else {
+    await predictFile();
+  }
+});
+
+// -------- TEXT MODE ----------
+async function predictText() {
+  const textarea = document.getElementById("inputText");
+  const texts = textarea.value
+    .split("\n")
+    .map(t => t.trim())
+    .filter(t => t.length > 0);
+
+  if (texts.length === 0) {
+    statusBox.innerHTML = "⚠️ Please enter some text!";
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/predict_text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texts })
+    });
+
+    const data = await res.json();
+    statusBox.innerHTML = "✅ Completed";
+    showResults(data.results);
+
+  } catch (err) {
+    statusBox.innerHTML = "❌ Error connecting to API";
+  }
 }
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    // Text mode button
-    const textBtn = document.getElementById('predict-text-btn');
-    if (textBtn) {
-        textBtn.addEventListener('click', () => {
-            SentimentAnalyzer.predictText('text-input', 'text-results');
-        });
-    }
-    
-    // File mode button
-    const fileBtn = document.getElementById('predict-file-btn');
-    if (fileBtn) {
-        fileBtn.addEventListener('click', () => {
-            SentimentAnalyzer.predictFile('file-input', 'text-column-input', 'file-results');
-        });
-    }
-    
-    // Clear results
-    const clearBtn = document.getElementById('clear-results');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            document.getElementById('text-results').innerHTML = '';
-            document.getElementById('file-results').innerHTML = '';
-        });
-    }
-});
+// -------- FILE MODE ----------
+async function predictFile() {
+  const file = document.getElementById("datasetFile").files[0];
+  const column = document.getElementById("textColumnName").value.trim();
+
+  if (!file) {
+    statusBox.innerHTML = "⚠️ Please upload a file!";
+    return;
+  }
+
+  if (!column) {
+    statusBox.innerHTML = "⚠️ Enter text column name!";
+    return;
+  }
+
+  const form = new FormData();
+  form.append("file", file);
+  form.append("text_column", column);
+
+  try {
+    const res = await fetch(`${API_URL}/predict_file`, {
+      method: "POST",
+      body: form
+    });
+
+    const data = await res.json();
+    statusBox.innerHTML = `✅ Processed ${data.row_count} rows`;
+    showResults(data.predictions);
+
+  } catch (err) {
+    statusBox.innerHTML = "❌ Error processing file";
+  }
+}
+
+// -------- Display Results ----------
+function showResults(items) {
+  resultsBox.innerHTML = items
+    .map(r => `
+      <div class="result-item ${r.label === "LABEL_1" ? "positive" : "negative"}">
+        <div class="result-header">
+          <span class="label ${r.label === "LABEL_1" ? "positive" : "negative"}">
+            ${r.label === "LABEL_1" ? "Positive 😊" : "Negative 😡"}
+          </span>
+          <span class="confidence">${(r.score * 100).toFixed(1)}% confidence</span>
+        </div>
+        <div class="result-text">${r.text}</div>
+      </div>
+    `)
+    .join("");
+}
