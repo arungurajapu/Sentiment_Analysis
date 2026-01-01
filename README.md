@@ -94,7 +94,8 @@ Sentiment_Analysis/
 You can view and run the full training and experimentation in this Colab notebook:
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](
-https://colab.research.google.com/github/arungurajapu/Sentiment_Analysis/blob/main/notebooks/sentiment_bert.ipynb)
+https://colab.research.google.com/github/arungurajapu/Sentiment_Analysis/blob/main/sentiment_bert.ipynb)
+
 
 ---
 
